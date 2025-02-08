@@ -1,0 +1,48 @@
+import { Router } from 'express';
+import { loginUser, createAccount } from '../controller/account.js';
+import { verifyUserCredentials } from '../controller/authenticate.js';
+import {
+  createFriendRequest,
+  findFriendsWithEmail,
+  findUsersForFriendRequest,
+} from '../controller/user.js';
+import {
+  acceptFriendRequest,
+  cancelFriendRequest,
+  getMyRequests,
+  getRequestedList,
+  rejectFriendRequest,
+} from '../controller/request.js';
+import { addExpense, getAllExpenses } from '../controller/expense.js';
+export const router = Router();
+
+// router.get('/test-db-connection', testDbConnection);
+
+router.post('/create-account', createAccount);
+
+router.post('/login', loginUser);
+
+router.get('/authenticate-user', verifyUserCredentials);
+
+//authenticated route
+router.get('/find-users', findUsersForFriendRequest);
+
+router.post('/send-friend-request', createFriendRequest);
+
+router.get('/requested-list', getRequestedList);
+
+router.get('/friend-requests', getMyRequests);
+
+router.put('/accept-request', acceptFriendRequest);
+
+router.put('/cancel-request', cancelFriendRequest);
+
+router.put('/reject-request', rejectFriendRequest);
+
+router.get('/find-friends', findFriendsWithEmail);
+
+router.post('/add-expense', addExpense);
+
+router.get('/get-all-expenses', getAllExpenses);
+
+// CREATE TABLE expense_table(lender BIGINT REFERENCES user_table(user_id) NULL, borrower BIGINT REFERENCES user_table(user_id), expense_date TIMESTAMPTZ NOT NULL, added_by BIGINT REFERENCES user_table(user_id), created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP);
