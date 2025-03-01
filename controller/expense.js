@@ -70,7 +70,6 @@ export const addExpense = async (req, res) => {
       ...getLenderBorrower(expenseType, friendId, currentUser),
     };
 
-    console.log(body, 'body of ');
     await ExpenseTable.create({ ...body });
 
     return res.status(200).send({ status: 'Expense added successfully' });
@@ -125,20 +124,17 @@ export const getAllExpenses = async (req, res) => {
         ],
       },
     });
-    console.log(friendsRef.length, 'friendsRef');
     if (friendsRef.length === 0)
       return res.status(200).send({
         friends: false,
       });
 
     const friends = friendsRef.map((friend) => {
-      console.log(friend.dataValues, 'friend....');
-      if (friend.dataValues.user1 === currentUser)
+      if (friend.dataValues.user1 === currentUser) {
         return friend.dataValues.user2;
-      else return friend.dataValues.user1;
+      } else return friend.dataValues.user1;
     });
 
-    console.log(friends, 'friends...');
     const expenseRef = await ExpenseTable.findAll({
       where: {
         [Op.or]: [
@@ -162,9 +158,31 @@ export const getAllExpenses = async (req, res) => {
       },
     });
 
-    if (expenseRef.length === 0) return res.status(200).send({ expenses: [] });
+    if (expenseRef.length === 0)
+      return res.status(200).send({ expenses: null });
+
     const expenses = expenseRef.map((expense) => expense.dataValues);
-    return res.status(200).send({ expenses });
+
+    // if (expenseData.borrower === currentUser && !expenseData.lender)
+    //   expenseType.self.push(expenseData);
+    // else if (expense.borrower === currentUser) {
+    //   expenseType.borrowed.push(expenseData);
+    // } else if (expense.lender === currentUser) {
+    //   expenseType.lended.push(expenseData);
+    // } else {
+    //   console.log('Does not fit into any criteria');
+    // }
+
+    const friendsUserData = await UserTable.findAll({
+      where: { user_id: { [Op.in]: friends } },
+    });
+
+    const friendsData = {};
+    friendsUserData.forEach((friend) => {
+      friendsData[friend.user_id] = friend;
+    });
+
+    return res.status(200).send({ expenses: expenses, friends: friendsData });
   } catch (error) {
     console.log(error, 'error in get all expense');
   }
