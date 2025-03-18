@@ -91,7 +91,7 @@ const getLenderBorrower = (expenseType, friendId, currentUser) => {
   }
 };
 
-export const getAllExpenses = async (req, res) => {
+export const getFriendsExpense = async (req, res) => {
   const { currentUser } = req.query;
   try {
     const userRef = await UserTable.findOne({
@@ -187,6 +187,56 @@ export const getAllExpenses = async (req, res) => {
     console.log(error, 'error in get all expense');
   }
 };
+
+export const getSelfExpenses = async (req, res) => {
+  const { currentUser, selectedMonth, currentTimezone } = req.query;
+  try {
+    const monthAndYear = selectedMonth.split('-');
+    const month = Number(monthAndYear[1]);
+    const year = Number(monthAndYear[0]);
+    const startDate = new Date(
+      new Date(year, month - 1, 1).toLocaleString('en-US', {
+        timeZone: currentTimezone,
+      })
+    );
+    const endDate = new Date(
+      new Date(year, month, 0).toLocaleString('en-US', {
+        timeZone: currentTimezone,
+      })
+    );
+    console.log(startDate, 'startDate..');
+    console.log(endDate, 'startDate..');
+    const userRef = await UserTable.findOne({
+      where: {
+        user_id: currentUser,
+      },
+    });
+
+    if (!userRef?.dataValues)
+      return res.status(401).send({ message: 'Current user not found' });
+
+    const expenseRef = await ExpenseTable.findAll({
+      where: {
+        lender: null,
+        borrower: currentUser,
+        [Op.and]: {
+          expense_date: { [Op.gt]: startDate },
+          expense_date: { [Op.lt]: endDate },
+        },
+      },
+    });
+
+    if (expenseRef.length === 0)
+      return res.status(200).send({ expenses: null });
+
+    const expenses = expenseRef.map((expense) => expense.dataValues);
+
+    return res.status(200).send({ expenses: expenses });
+  } catch (error) {
+    console.log(error, 'error in get all expense');
+  }
+};
+
 /**Things to add
  * lender ~
  * borrower~

@@ -13,7 +13,11 @@ import {
   getRequestedList,
   rejectFriendRequest,
 } from '../controller/request.js';
-import { addExpense, getAllExpenses } from '../controller/expense.js';
+import {
+  addExpense,
+  getFriendsExpense,
+  getSelfExpenses,
+} from '../controller/expense.js';
 export const router = Router();
 
 // router.get('/test-db-connection', testDbConnection);
@@ -43,6 +47,8 @@ router.get('/find-friends', findFriendsWithEmail);
 
 router.post('/add-expense', addExpense);
 
-router.get('/get-all-expenses', getAllExpenses);
+router.get('/get-friend-expenses', getFriendsExpense);
+
+router.get('/get-self-expenses', getSelfExpenses);
 
 // CREATE TABLE expense_table(lender BIGINT REFERENCES user_table(user_id) NULL, borrower BIGINT REFERENCES user_table(user_id), expense_date TIMESTAMPTZ NOT NULL, added_by BIGINT REFERENCES user_table(user_id), created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP);
