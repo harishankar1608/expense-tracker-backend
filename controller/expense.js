@@ -1,7 +1,7 @@
-import { Op } from 'sequelize';
-import { ExpenseTable } from '../database_models/expenseTable.js';
-import { UserTable } from '../database_models/userTable.js';
-import { RequestTable } from '../database_models/requestTable.js';
+import { Op } from "sequelize";
+import { ExpenseTable } from "../database_models/expenseTable.js";
+import { UserTable } from "../database_models/userTable.js";
+import { RequestTable } from "../database_models/requestTable.js";
 
 export const addExpense = async (req, res) => {
   const {
@@ -27,7 +27,7 @@ export const addExpense = async (req, res) => {
     });
 
   //validate if there is a friendId when expense type is not self
-  if (expenseType !== 'self' && !friendId)
+  if (expenseType !== "self" && !friendId)
     return res
       .status(400)
       .send({ message: `friendId is required to add expense` });
@@ -35,7 +35,7 @@ export const addExpense = async (req, res) => {
   //validate current user is different from friend
   if (currentUser === friendId)
     return res.status(400).send({
-      message: 'Current user and friend cannot be same',
+      message: "Current user and friend cannot be same",
     });
 
   const users = [currentUser];
@@ -70,21 +70,22 @@ export const addExpense = async (req, res) => {
       ...getLenderBorrower(expenseType, friendId, currentUser),
     };
 
-    await ExpenseTable.create({ ...body });
+    const addedExpense = await ExpenseTable.create({ ...body });
 
-    return res.status(200).send({ status: 'Expense added successfully' });
+    return res.status(200).send({ status: true, expense: addedExpense });
   } catch (error) {
-    console.log(error, '......error......');
+    console.log(error, "......error......");
+    return res.status(500).send({ status: false });
   }
 };
 
 const getLenderBorrower = (expenseType, friendId, currentUser) => {
   switch (expenseType) {
-    case 'lended':
+    case "lended":
       return { lender: currentUser, borrower: friendId };
-    case 'borrowed':
+    case "borrowed":
       return { lender: friendId, borrower: currentUser };
-    case 'self':
+    case "self":
       return { borrower: currentUser };
     default:
       throw new Error(`Invalid expense type ${expenseType}`);
@@ -98,7 +99,7 @@ export const getFriendsExpense = async (req, res) => {
       where: { user_id: currentUser },
     });
     if (!userRef?.dataValues)
-      return res.status(401).send({ message: 'Current user not found' });
+      return res.status(401).send({ message: "Current user not found" });
 
     const friendsRef = await RequestTable.findAll({
       where: {
@@ -109,7 +110,7 @@ export const getFriendsExpense = async (req, res) => {
               user2: {
                 [Op.not]: currentUser,
               },
-              status: 'accepted',
+              status: "accepted",
             },
           },
           {
@@ -118,7 +119,7 @@ export const getFriendsExpense = async (req, res) => {
                 [Op.not]: currentUser,
               },
               user2: currentUser,
-              status: 'accepted',
+              status: "accepted",
             },
           },
         ],
@@ -150,10 +151,10 @@ export const getFriendsExpense = async (req, res) => {
             },
             borrower: currentUser,
           },
-          {
-            lender: null,
-            borrower: currentUser,
-          },
+          // {
+          //   lender: null,
+          //   borrower: currentUser,
+          // },
         ],
       },
     });
@@ -184,28 +185,26 @@ export const getFriendsExpense = async (req, res) => {
 
     return res.status(200).send({ expenses: expenses, friends: friendsData });
   } catch (error) {
-    console.log(error, 'error in get all expense');
+    console.log(error, "error in get all expense");
   }
 };
 
 export const getSelfExpenses = async (req, res) => {
   const { currentUser, selectedMonth, currentTimezone } = req.query;
   try {
-    const monthAndYear = selectedMonth.split('-');
+    const monthAndYear = selectedMonth.split("-");
     const month = Number(monthAndYear[1]);
     const year = Number(monthAndYear[0]);
     const startDate = new Date(
-      new Date(year, month - 1, 1).toLocaleString('en-US', {
+      new Date(year, month - 1, 1).toLocaleString("en-US", {
         timeZone: currentTimezone,
       })
     );
     const endDate = new Date(
-      new Date(year, month, 0).toLocaleString('en-US', {
+      new Date(year, month, 0).toLocaleString("en-US", {
         timeZone: currentTimezone,
       })
     );
-    console.log(startDate, 'startDate..');
-    console.log(endDate, 'startDate..');
     const userRef = await UserTable.findOne({
       where: {
         user_id: currentUser,
@@ -213,27 +212,24 @@ export const getSelfExpenses = async (req, res) => {
     });
 
     if (!userRef?.dataValues)
-      return res.status(401).send({ message: 'Current user not found' });
+      return res.status(401).send({ message: "Current user not found" });
 
     const expenseRef = await ExpenseTable.findAll({
       where: {
         lender: null,
         borrower: currentUser,
-        [Op.and]: {
-          expense_date: { [Op.gt]: startDate },
-          expense_date: { [Op.lt]: endDate },
-        },
+        expense_date: { [Op.and]: { [Op.gt]: startDate, [Op.lt]: endDate } },
       },
     });
 
-    if (expenseRef.length === 0)
-      return res.status(200).send({ expenses: null });
+    if (expenseRef.length === 0) return res.status(200).send({ expenses: [] });
 
     const expenses = expenseRef.map((expense) => expense.dataValues);
+    console.log(expenses, "EXPENSEs");
 
     return res.status(200).send({ expenses: expenses });
   } catch (error) {
-    console.log(error, 'error in get all expense');
+    console.log(error, "error in get all expense");
   }
 };
 
