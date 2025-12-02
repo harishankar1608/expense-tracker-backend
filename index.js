@@ -13,6 +13,10 @@ app.get("/", (req, res) => {
     .send({ message: "Node js application running successfully" });
 });
 
+app.get("/health-check", (req, res) => {
+  return res.status(200).send({ message: "Node js application healthy" });
+});
+
 app.use(cors({ credentials: true, origin: process.env.FRONT_END_URL }));
 app.use(express.json());
 app.use(cookieParser());
