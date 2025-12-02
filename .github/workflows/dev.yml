@@ -36,7 +36,7 @@ env:
   ECS_SERVICE: expense_tracker_node_td-service-4jrrgly0 # set this to your Amazon ECS service name
   ECS_CLUSTER: expense_tracker # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION:
-    expense_tracker_node_td # set this to the path to your Amazon ECS task definition
+    arn:aws:ecs:ap-south-1:532174505292:task-definition/expense_tracker_node_td # set this to the path to your Amazon ECS task definition
     # file, e.g. .aws/task-definition.json
   CONTAINER_NAME:
     expense_tracker_node_cont # set this to the name of the container in the
