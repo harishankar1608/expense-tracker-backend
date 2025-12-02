@@ -42,15 +42,17 @@ env:
     expense_tracker_node_cont # set this to the name of the container in the
     # containerDefinitions section of your task definition
 
-permissions:
-  id-token: write
-  repository-projects: read
+# permissions:
+#   id-token: write
+#   repository-projects: read
 
 jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
     environment: development
+    permissions:
+      repository-projects: read
 
     steps:
       - name: Checkout
