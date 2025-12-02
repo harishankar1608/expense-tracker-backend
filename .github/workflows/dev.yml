@@ -44,6 +44,7 @@ env:
 
 permissions:
   id-token: write
+  repository-projects: read
 
 jobs:
   deploy:
@@ -54,8 +55,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: ${{secrets.SECRET_TOKEN_GITHUB}}
+        # with:
+        #   token: ${{secrets.SECRET_TOKEN_GITHUB}}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
