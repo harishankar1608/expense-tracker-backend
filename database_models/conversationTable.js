@@ -1,35 +1,33 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "../postgres.js";
 
-export const RequestTable = sequelize.define(
-  "requests",
+export const ConversationTable = sequelize.define(
+  "conversations",
   {
-    request_id: {
+    id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
-      allowNull: false,
       autoIncrement: true,
     },
-    user1: {
+    type: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+    },
+    last_message_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: "messages",
+        key: "id",
+      },
+    },
+    created_by: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: "users",
         key: "user_id",
       },
-    },
-    user2: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: "users",
-        key: "user_id",
-      },
-    },
-    status: {
-      //requested, accepted, cancelled, rejected, blocked
-      type: DataTypes.STRING,
-      allowNull: false,
     },
     created_at: {
       type: DataTypes.DATE,
@@ -42,9 +40,12 @@ export const RequestTable = sequelize.define(
       allowNull: true,
     },
   },
-  {
-    tableName: "requests",
-    timestamps: false,
-    schema: "public",
-  }
+  { tableName: "conversations", timestamps: false, schema: "public" }
 );
+//conversation table
+// create table conversations(
+//   id bigserial primary key not null,
+//   type varchar(10),
+//   created_at timestamptz default now(),
+//   updated_at timestamptz default now()
+// )

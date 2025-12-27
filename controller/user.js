@@ -1,6 +1,5 @@
-import { Op } from 'sequelize';
-import { UserTable } from '../database_models/userTable.js';
-import { RequestTable } from '../database_models/requestTable.js';
+import { Op } from "sequelize";
+import { UserTable, RequestTable } from "../database_models/index.js";
 
 export async function findUsersForFriendRequest(req, res) {
   const { email, current_user } = req.query;
@@ -11,12 +10,11 @@ export async function findUsersForFriendRequest(req, res) {
       where: {
         [Op.or]: [{ user1: current_user }, { user2: current_user }],
         status: {
-          [Op.notIn]: ['rejected', 'cancelled'],
+          [Op.notIn]: ["rejected", "cancelled"],
         },
       },
     });
 
-    console.log(existingRequestRef, 'existing request');
     const existingRequestedUsers = existingRequestRef.map((request) =>
       request.dataValues.user1 === current_user
         ? request.dataValues.user2
@@ -41,8 +39,8 @@ export async function findUsersForFriendRequest(req, res) {
 
     return res.status(200).send({ results: foundUsers });
   } catch (error) {
-    console.log(error, 'error');
-    return res.status(500).send({ message: 'Error while searching people' });
+    console.log(error, "error");
+    return res.status(500).send({ message: "Error while searching people" });
   }
 }
 
@@ -51,13 +49,13 @@ export async function findFriendsWithEmail(req, res) {
   const { currentUser, email } = req.query;
 
   try {
-    if (!currentUser) throw new Error('No current user specified in request');
+    if (!currentUser) throw new Error("No current user specified in request");
 
     const userRef = await UserTable.findOne({
       where: {
         user_id: currentUser,
       },
-      attributes: ['user_id'],
+      attributes: ["user_id"],
     });
 
     if (!userRef)
@@ -66,7 +64,7 @@ export async function findFriendsWithEmail(req, res) {
     const requestRef = await RequestTable.findAll({
       where: {
         [Op.or]: [{ user1: currentUser }, { user2: currentUser }],
-        status: 'accepted',
+        status: "accepted",
       },
     });
 
@@ -87,14 +85,14 @@ export async function findFriendsWithEmail(req, res) {
           [Op.iLike]: `%${email}%`,
         },
       },
-      attributes: ['name', 'email', 'user_id'],
+      attributes: ["name", "email", "user_id"],
     });
 
     const friends = emailMatchingFriends.map((friend) => friend.dataValues);
 
     return res.status(200).send({ friends });
   } catch (error) {
-    console.log(error, 'error....');
+    console.log(error, "error....");
   }
 }
 
@@ -115,7 +113,7 @@ export async function createFriendRequest(req, res) {
           [Op.any]: users,
         },
       },
-      attributes: ['user_id'],
+      attributes: ["user_id"],
     });
 
     if (userRef.length !== users.length) {
@@ -145,24 +143,24 @@ export async function createFriendRequest(req, res) {
           },
         ],
         status: {
-          [Op.notIn]: ['rejected', 'cancelled'],
+          [Op.notIn]: ["rejected", "cancelled"],
         },
       },
     });
 
     if (requestRef)
       return res.status(400).send({
-        message: 'request already exists',
+        message: "request already exists",
       });
 
-    console.log(friendId, 'friendId');
+    console.log(friendId, "friendId");
 
     await RequestTable.create({
       user1: userId,
       user2: friendId,
-      status: 'requested',
+      status: "requested",
     });
-    return res.status(200).send({ message: 'Request created successfully' });
+    return res.status(200).send({ message: "Request created successfully" });
   } catch (error) {
     console.log(error);
     return res.status(500).send({ status: false });
