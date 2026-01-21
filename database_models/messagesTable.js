@@ -45,10 +45,6 @@ export const MessagesTable = sequelize.define(
         key: "user_id",
       },
     },
-    client_message_id: {
-      type: DataTypes.STRING(36),
-      allowNull: false,
-    },
     sent_at: {
       type: DataTypes.DATE,
       allowNull: false,

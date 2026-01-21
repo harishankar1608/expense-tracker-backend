@@ -11,3 +11,7 @@ export const PARTICIPANT_ROLE = {
 export const MESSAGE_TYPE = {
   TEXT: "TEXT",
 };
+
+export const DEFAULT_MESSAGE = {
+  GREET: "Hello",
+};

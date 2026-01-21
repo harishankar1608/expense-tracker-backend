@@ -1,11 +1,10 @@
 import { Op } from "sequelize";
 import { UserTable, RequestTable } from "../database_models/index.js";
+import { findConversation } from "../utils.js/conversation.js";
 
 export async function findUsersForFriendRequest(req, res) {
   const { email, current_user } = req.query;
   try {
-    console.log(current_user);
-
     const existingRequestRef = await RequestTable.findAll({
       where: {
         [Op.or]: [{ user1: current_user }, { user2: current_user }],
@@ -45,8 +44,7 @@ export async function findUsersForFriendRequest(req, res) {
 }
 
 export async function findFriendsWithEmail(req, res) {
-  // find-friends?currentUser=${userData.userId}&email=${email}
-  const { currentUser, email } = req.query;
+  const { currentUser, email, includeConversation } = req.query;
 
   try {
     if (!currentUser) throw new Error("No current user specified in request");
@@ -89,6 +87,17 @@ export async function findFriendsWithEmail(req, res) {
     });
 
     const friends = emailMatchingFriends.map((friend) => friend.dataValues);
+
+    if (includeConversation) {
+      //new Map=friendId-key, conversationId-value
+      const conversationData = await findConversation(currentUser, friendsId);
+
+      friends.forEach((friend) => {
+        if (conversationData.has(friend.user_id)) {
+          friend.conversation_id = conversationData.get(friend.user_id);
+        }
+      });
+    }
 
     return res.status(200).send({ friends });
   } catch (error) {
@@ -152,8 +161,6 @@ export async function createFriendRequest(req, res) {
       return res.status(400).send({
         message: "request already exists",
       });
-
-    console.log(friendId, "friendId");
 
     await RequestTable.create({
       user1: userId,

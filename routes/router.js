@@ -21,6 +21,9 @@ import {
 import {
   createConversation,
   getAllConversations,
+  getAllMessagesInConversation,
+  markMessageRead,
+  sendMessage,
 } from "../controller/message.js";
 export const router = Router();
 
@@ -59,5 +62,11 @@ router.get("/get-self-expenses", getSelfExpenses);
 router.post("/start-conversation", createConversation);
 
 router.get("/conversations", getAllConversations);
+
+router.get("/messages", getAllMessagesInConversation);
+
+router.post("/message", sendMessage);
+
+router.post("/read-message", markMessageRead);
 
 // CREATE TABLE expense_table(lender BIGINT REFERENCES user_table(user_id) NULL, borrower BIGINT REFERENCES user_table(user_id), expense_date TIMESTAMPTZ NOT NULL, added_by BIGINT REFERENCES user_table(user_id), created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP);

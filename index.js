@@ -3,11 +3,10 @@ import dotenv from "dotenv";
 import { router } from "./routes/router.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { WebSocket, WebSocketServer } from "ws";
+import { WebSocketServer } from "ws";
 import { decodeUserId } from "./utils.js/decode.js";
-import { validateFriends, validateUser } from "./utils.js/validate.js";
-import { ulid } from "ulid";
-import { handleSendMessage } from "./controller/webSocket/message.js";
+import { validateUser } from "./utils.js/validate.js";
+import { users } from "./controller/webSocket/users.js";
 
 dotenv.config();
 const app = express();
@@ -34,8 +33,6 @@ const server = app.listen(process.env.PORT, () => {
 
 const wss = new WebSocketServer({ server, path: "/messages" });
 
-const users = new Map(); // {user_id: socket}
-
 wss.on("connection", async (ws, req) => {
   const headerCookies = req.headers.cookie || "";
   const cookies = headerCookies.split(";") || [];
@@ -45,7 +42,7 @@ wss.on("connection", async (ws, req) => {
 
   if (!sessionIdCookie) {
     console.log("No session id found for user");
-    ws.close(3003, { message: "No session id found for user" });
+    ws.close(3003, { message: "Not authorized" });
     return;
   }
 
@@ -67,24 +64,23 @@ wss.on("connection", async (ws, req) => {
 
   users.set(userId, ws);
 
-  ws.on("message", async (rawEvent) => {
-    //parse message data
-    const eventString = rawEvent.toString();
-    const eventData = JSON.parse(eventString);
+  // ws.on("message", async (rawEvent) => {
+  // const eventString = rawEvent.toString();
+  // const eventData = JSON.parse(eventString);
 
-    console.log(eventData, "Message Data");
+  // console.log(eventData, "Message Data");
 
-    // { requestType:'send_message' , data:{to: '3', message: 'Hello JErry', conversationId: null} }
-    switch (eventData.requestType) {
-      case "send_message":
-        await handleSendMessage(ws, users, eventData.data, userId);
-        break;
-    }
+  // { requestType:'send_message' , data:{to: '3', message: 'Hello JErry', conversationId: null} }
+  // switch (eventData.requestType) {
+  //   case "send_message":
+  //     await handleSendMessage(ws, users, eventData.data, userId);
+  //     break;
+  // }
 
-    // ws.send(JSON.stringify({ status: true, id: messageId }));
+  // ws.send(JSON.stringify({ status: true, id: messageId }));
 
-    //store message in db
-  });
+  //store message in db
+  // });
 
   ws.on("close", () => {
     users.delete(userId);
