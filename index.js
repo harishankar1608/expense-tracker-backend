@@ -6,7 +6,7 @@ import cookieParser from "cookie-parser";
 import { WebSocketServer } from "ws";
 import { decodeUserId } from "./utils.js/decode.js";
 import { validateUser } from "./utils.js/validate.js";
-import { users } from "./controller/webSocket/users.js";
+import websocketConnections from "./controller/webSocket/users.js";
 
 dotenv.config();
 const app = express();
@@ -62,7 +62,7 @@ wss.on("connection", async (ws, req) => {
     return;
   }
 
-  users.set(userId, ws);
+  websocketConnections.addUser(userId, ws);
 
   // ws.on("message", async (rawEvent) => {
   // const eventString = rawEvent.toString();

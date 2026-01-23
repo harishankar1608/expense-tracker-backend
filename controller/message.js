@@ -12,8 +12,13 @@ import {
   MESSAGE_TYPE,
   PARTICIPANT_ROLE,
 } from "../enum/messages.js";
-import { users } from "./webSocket/users.js";
+import websocketConnections from "./webSocket/users.js";
 import { MessageReadsTable } from "../database_models/messageReadsTable.js";
+
+import markMessageReadServices from "../services/message/markMessageRead.db.js";
+import sendMessageServices from "../services/message/sendMessage.db.js";
+
+import dateServices from "../services/date.js";
 
 export const createConversation = async (req, res) => {
   try {
@@ -313,76 +318,63 @@ export const getAllMessagesInConversation = async (req, res) => {
 export const sendMessage = async (req, res) => {
   try {
     const { userId, conversationId, message } = req.body;
-    const messageDate = new Date();
 
     if (!userId || !conversationId || !message)
       return res.status(400).send({ message: "Missing required fields" });
 
+    const messageDate = dateServices.getCurrentDate();
+
     //get conversation along participant (only sender)
-    const conversation = await ConversationTable.findByPk(conversationId, {
-      attributes: ["id"],
-      include: [
-        {
-          model: ConversationParticipantsTable,
-          as: "conversation_participant",
-          attributes: ["user_id"],
-          where: { user_id: userId },
-        },
-      ],
-    });
+    const conversation =
+      await sendMessageServices.getConversationWithParticipant(
+        conversationId,
+        userId
+      );
 
     if (!conversation)
-      return res.status(400).send({ message: "conversation not found" });
+      return res.status(400).send({ message: "Conversation not found" });
 
     //get all other participants in conversation other than the sender
-    const participants = await ConversationParticipantsTable.findAll({
-      where: {
-        user_id: {
-          [Op.not]: userId,
-        },
-        conversation_id: conversationId,
-      },
-      attributes: ["user_id"],
-    });
+    const participants =
+      await sendMessageServices.findParticipantsInConversation(
+        conversationId,
+        userId
+      );
 
     //create message in messages table
-    const lastMessage = await MessagesTable.create({
+    const lastMessage = await sendMessageServices.createMessage({
       content: message,
       conversation_id: conversationId,
       type: MESSAGE_TYPE.TEXT,
       sent_at: messageDate,
       sender_id: userId,
+      is_deleted: false,
+      edited: false,
     });
 
     //update the conversation table with last message id
-    await ConversationTable.update(
-      { last_message_id: lastMessage.id },
-      {
-        where: {
-          id: conversationId,
-        },
-      }
+    await sendMessageServices.updateConversationWithMessage(
+      conversationId,
+      lastMessage.dataValues.id
     );
 
     //push the message to all the active users who has socket connection open
     participants.forEach((participant) => {
-      if (users.has(participant.user_id)) {
-        users.get(participant.user_id).send(
-          JSON.stringify({
-            requestType: "deliver_message",
-            data: {
-              id: lastMessage.dataValues.id,
-              conversationId,
-              content: lastMessage.dataValues.content,
-              type: lastMessage.dataValues.type,
-              edited: lastMessage.dataValues.edited,
-              unRead: true,
-              isDeleted: lastMessage.dataValues.is_deleted,
-              senderId: lastMessage.dataValues.send_id,
-              sentAt: lastMessage.dataValues.sent_at,
-            },
-          })
-        );
+      if (websocketConnections.hasUser(participant.dataValues.user_id)) {
+        websocketConnections.sendMessageToUser(userId, {
+          requestType: "deliver_message",
+          data: {
+            id: lastMessage.dataValues.id,
+            conversationId,
+            content: lastMessage.dataValues.content,
+            type: lastMessage.dataValues.type,
+            edited: lastMessage.dataValues.edited,
+            unRead: true,
+            isDeleted: lastMessage.dataValues.is_deleted,
+            senderId: lastMessage.dataValues.send_id,
+            sentAt: lastMessage.dataValues.sent_at,
+          },
+        });
       }
     });
 
@@ -395,12 +387,14 @@ export const sendMessage = async (req, res) => {
         edited: lastMessage.dataValues.edited,
         isDeleted: lastMessage.dataValues.is_deleted,
         senderId: lastMessage.dataValues.sender_id,
-        sentAt: lastMessage.dataValues.send_at,
+        sentAt: lastMessage.dataValues.sent_at,
       },
     });
   } catch (error) {
     console.log(error, "ERROR");
-    return res.status(500).send({ status: false });
+    return res
+      .status(500)
+      .send({ message: "Error while sending message to the recipient" });
   }
 };
 
@@ -408,35 +402,53 @@ export const markMessageRead = async (req, res) => {
   try {
     const { messageIds, userId } = req.body;
 
-    const messageData = await MessagesTable.findAll({
-      where: {
-        id: {
-          [Op.in]: messageIds,
-        },
-      },
-      attributes: ["conversation_id", "id"],
-    });
+    if (!messageIds || messageIds.length === 0 || !userId)
+      return res.status(400).send({ message: "Missing required fields" });
+    //get messages of all the message ids from the messages table
+    const messageData = await markMessageReadServices.getMessagesWithIds(
+      messageIds
+    );
 
     if (messageData.length !== messageIds.length)
       return res
         .status(400)
         .send({ message: "Request contains some invalid message ids" });
 
-    const existingReads = await MessageReadsTable.findAll({
-      where: {
-        message_id: {
-          [Op.in]: messageIds,
-        },
-        user_id: userId,
-      },
-    });
+    const conversationSet = new Set();
 
-    const existingReadsList = existingReads.map(
-      (read) => read.dataValues.message_id
+    const messageConversationMap = messageData.reduce((obj, message) => {
+      conversationSet.add(message.dataValues.conversation_id);
+      obj.set(message.dataValues.id, message.dataValues.conversation_id);
+      return obj;
+    }, new Map());
+
+    //get the conversation participant data of the curent user for the conversations
+    const conversations =
+      await markMessageReadServices.getConversationParticipant(
+        Array.from(conversationSet),
+        userId
+      );
+
+    //check if the user is part of all the conversations
+    if (conversations.length !== conversationSet.size)
+      return res
+        .status(400)
+        .send({ message: "User must be part of the conversation" });
+
+    //get message ids which does not have message read created in table
+    const existingReads = await markMessageReadServices.getExistingReadMessages(
+      messageIds,
+      userId
     );
 
-    const existingReadsSet = new Set(existingReadsList);
+    //create a set for look up table
+    const existingReadsSet = new Set();
 
+    existingReads.forEach((read) => {
+      existingReadsSet.add(read.dataValues.message_id);
+    });
+
+    //filter out message ids which already have read messages entry in table
     const finalMessageIds = messageIds.filter(
       (messageId) => !existingReadsSet.has(messageId)
     );
@@ -446,30 +458,6 @@ export const markMessageRead = async (req, res) => {
         .status(200)
         .send({ message: "Reads created successfully created for messages" });
 
-    const conversationSet = new Set();
-
-    //need all message ids to be verified of existence
-    const messageConversationMap = messageData.reduce((obj, message) => {
-      conversationSet.add(message.dataValues.conversation_id);
-      obj.set(message.dataValues.id, message.dataValues.conversation_id);
-      return obj;
-    }, new Map());
-
-    //validate whether the user is part of all conversation
-    const conversations = await ConversationParticipantsTable.findAll({
-      where: {
-        user_id: userId,
-        conversation_id: {
-          [Op.in]: Array.from(conversationSet),
-        },
-      },
-    });
-
-    if (conversations.length !== conversationSet.size)
-      return res
-        .status(400)
-        .send({ message: "User must be part of the conversation" });
-
     //create payload for message reads;
     const payload = finalMessageIds.map((messageId) => ({
       conversation_id: messageConversationMap.get(messageId),
@@ -478,13 +466,16 @@ export const markMessageRead = async (req, res) => {
       read: true,
     }));
 
-    await MessageReadsTable.bulkCreate(payload);
+    //create message reads in postgres
+    await markMessageReadServices.bulkCreateMessageReads(payload);
 
     return res
       .status(200)
-      .send({ status: true, message: "Messages read successfully", payload });
+      .send({ message: "Reads created successfully created for messages" });
   } catch (error) {
     console.log(error, "error");
-    return res.status(500).send({ status: false, message: error.message });
+    return res
+      .status(500)
+      .send({ message: "Error while updating message reads" });
   }
 };

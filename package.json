@@ -5,9 +5,12 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "dev": "nodemon index.js",
     "start": "node index.js"
+  },
+  "jest": {
+    "transform": {}
   },
   "author": "Hari Shankar N",
   "license": "ISC",
@@ -23,5 +26,8 @@
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.3",
     "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0"
   }
 }
