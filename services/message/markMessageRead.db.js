@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import {
   ConversationParticipantsTable,
   MessagesTable,
@@ -35,7 +36,7 @@ const getConversationParticipant = (conversations, userId) => {
         [Op.in]: conversations,
       },
     },
-    attributes: ["id"],
+    attributes: ["conversation_id"],
   });
 };
 

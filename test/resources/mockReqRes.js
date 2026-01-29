@@ -1,6 +1,7 @@
-export function createRequest({ body, query }) {
+export function createRequest({ body, query, metadata }) {
   this.body = { ...body };
   this.query = { ...query };
+  this.metadata = { ...metadata };
 }
 
 export function createResponse() {

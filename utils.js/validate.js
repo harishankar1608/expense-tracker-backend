@@ -1,6 +1,7 @@
 import { Op } from "sequelize";
 import { RequestTable } from "../database_models/requestTable.js";
 import { UserTable } from "../database_models/userTable.js";
+import { decodeUserId } from "./decode.js";
 
 export const validateUser = async (userId) => {
   try {
@@ -22,9 +23,20 @@ export const validateFriends = async (userId, friendId) => {
         ],
       },
     });
+
     if (isFriends) return true;
   } catch (error) {
     return false;
   }
   return false;
+};
+
+export const decodeAndValidateUser = async (sessionId) => {
+  const userId = decodeUserId(sessionId);
+
+  const user = await UserTable.findByPk(userId);
+
+  if (!user) return { status: false, userId: null };
+
+  return { status: true, userId: Number(user.dataValues.user_id) };
 };

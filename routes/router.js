@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { loginUser, createAccount } from "../controller/account.js";
-import { verifyUserCredentials } from "../controller/authenticate.js";
+import {
+  verifyUserCredentials,
+  verifyUserMiddleWare,
+} from "../controller/authenticate.js";
 import {
   createFriendRequest,
   findFriendsWithEmail,
@@ -36,6 +39,8 @@ router.post("/login", loginUser);
 router.get("/authenticate-user", verifyUserCredentials);
 
 //authenticated route
+router.use(verifyUserMiddleWare);
+
 router.get("/find-users", findUsersForFriendRequest);
 
 router.post("/send-friend-request", createFriendRequest);

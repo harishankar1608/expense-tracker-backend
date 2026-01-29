@@ -82,9 +82,9 @@ wss.on("connection", async (ws, req) => {
   //store message in db
   // });
 
-  ws.on("close", () => {
-    users.delete(userId);
-  });
+  // ws.on("close", () => {
+  //   users.delete(userId);
+  // });
 });
 
 //message table
