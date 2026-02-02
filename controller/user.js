@@ -102,6 +102,9 @@ export async function findFriendsWithEmail(req, res) {
     return res.status(200).send({ friends });
   } catch (error) {
     console.log(error, "error....");
+    return res
+      .status(500)
+      .send({ message: "Error while getting friends with email" });
   }
 }
 

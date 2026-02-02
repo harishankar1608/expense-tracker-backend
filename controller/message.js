@@ -10,6 +10,7 @@ import getAllConversationServices from "../services/message/getAllConversations.
 import getAllMessagesInConversationServices from "../services/message/getAllMessagesInConversation.db.js";
 import sendMessageServices from "../services/message/sendMessage.db.js";
 import markMessageReadServices from "../services/message/markMessageRead.db.js";
+import getConversationUnreadCountServices from "../services/message/getConversationUnreadCount.db.js";
 
 import dateServices from "../services/date.js";
 
@@ -320,7 +321,7 @@ export const sendMessage = async (req, res) => {
     //push the message to all the active users who has socket connection open
     participants.forEach((participant) => {
       if (websocketConnections.hasUser(participant.dataValues.user_id)) {
-        websocketConnections.sendMessageToUser(currentUser, {
+        websocketConnections.sendMessageToUser(participant.dataValues.user_id, {
           requestType: "deliver_message",
           data: {
             id: lastMessage.dataValues.id,
@@ -437,5 +438,34 @@ export const markMessageRead = async (req, res) => {
     return res
       .status(500)
       .send({ message: "Error while updating message reads" });
+  }
+};
+
+export const getConversationUnreadCount = async (req, res) => {
+  try {
+    const { conversationId } = req.query;
+    const { currentUser } = req.metadata;
+
+    if (!conversationId)
+      return res.status(400).send({ message: "Missing required fields" });
+
+    const messagesCount =
+      await getConversationUnreadCountServices.getMessagesCount(
+        conversationId,
+        currentUser
+      );
+
+    const readMessageCount =
+      await getConversationUnreadCountServices.getReadMessagesCount(
+        conversationId,
+        currentUser
+      );
+
+    return res.status(200).send({ unReads: messagesCount - readMessageCount });
+  } catch (error) {
+    console.log(error, "error");
+    return res
+      .status(500)
+      .send({ message: "Error while getting read count for conversation" });
   }
 };

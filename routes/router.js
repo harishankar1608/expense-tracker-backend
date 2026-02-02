@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { loginUser, createAccount } from "../controller/account.js";
+import {
+  loginUser,
+  createAccount,
+  logoutHandler,
+} from "../controller/account.js";
 import {
   verifyUserCredentials,
   verifyUserMiddleWare,
@@ -27,6 +31,7 @@ import {
   getAllMessagesInConversation,
   markMessageRead,
   sendMessage,
+  getConversationUnreadCount,
 } from "../controller/message.js";
 export const router = Router();
 
@@ -73,5 +78,9 @@ router.get("/messages", getAllMessagesInConversation);
 router.post("/message", sendMessage);
 
 router.post("/read-message", markMessageRead);
+
+router.get("/conversation-unreads", getConversationUnreadCount);
+
+router.get("/logout", logoutHandler);
 
 // CREATE TABLE expense_table(lender BIGINT REFERENCES user_table(user_id) NULL, borrower BIGINT REFERENCES user_table(user_id), expense_date TIMESTAMPTZ NOT NULL, added_by BIGINT REFERENCES user_table(user_id), created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP);

@@ -1,6 +1,9 @@
+import { Op } from "sequelize";
 import {
   ConversationParticipantsTable,
   ConversationTable,
+  MessagesTable,
+  MessageReadsTable,
 } from "../../database_models/index.js";
 
 const validateParticipant = (conversationId, currentUser) => {

@@ -1,6 +1,8 @@
+import { Op } from "sequelize";
 import {
   ConversationParticipantsTable,
   ConversationTable,
+  MessagesTable,
 } from "../../database_models/index.js";
 
 const getConversationWithParticipant = (conversationId, userId) => {

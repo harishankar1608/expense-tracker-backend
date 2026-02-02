@@ -4,9 +4,9 @@ import {
   ConversationTable,
   MessagesTable,
   UserTable,
+  MessageReadsTable,
 } from "../../database_models/index.js";
 import { CONVERSATION_TYPE } from "../../enum/messages.js";
-import { MessageReadsTable } from "../../database_models/messageReadsTable.js";
 
 const getAllDmParticipants = (currentUser) => {
   return ConversationParticipantsTable.findAll({

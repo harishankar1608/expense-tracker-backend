@@ -12,7 +12,7 @@ export async function createAccount(req, res) {
         message: "User already exist, please try a different email address",
       });
 
-    const passwordHash = await bcrypt.hash(password, 16);
+    const passwordHash = await bcrypt.hash(password, 12);
 
     await UserTable.create({ email, name, password: passwordHash });
 
@@ -28,11 +28,13 @@ export async function createAccount(req, res) {
 export async function loginUser(req, res) {
   const { email, password } = req.body;
   try {
-    const user = await UserTable.findOne({ where: { email } });
+    const user = await UserTable.findOne({
+      where: { email },
+      attributes: ["user_id", "name", "password"],
+    });
     if (!user) return res.status(404).send(false);
 
-    const userEncryptedPassword = user.password;
-
+    const userEncryptedPassword = user.dataValues.password;
     const isValidPassword = await bcrypt.compare(
       password,
       userEncryptedPassword
@@ -53,11 +55,20 @@ export async function loginUser(req, res) {
       maxAge: cookieExpiration,
       httpOnly: true,
     });
-    return res.status(200).send(true);
+
+    return res.status(200).send({
+      userId: user.dataValues.user_id,
+      username: user.dataValues.name,
+    });
   } catch (error) {
     console.log("Error while logging in", error.message);
     return res
       .status(500)
       .send({ message: "Error while validating user account" });
   }
+}
+
+export async function logoutHandler(req, res) {
+  res.clearCookie("session_id", { path: "/" });
+  return res.status(200).send({ message: "Logged out successfully" });
 }

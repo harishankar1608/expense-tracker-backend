@@ -4,6 +4,7 @@ import { ExpenseTable } from "./expenseTable.js";
 import { ConversationTable } from "./conversationTable.js";
 import { ConversationParticipantsTable } from "./participantsTable.js";
 import { MessagesTable } from "./messagesTable.js";
+import { MessageReadsTable } from "./messageReadsTable.js";
 
 // UserTable.hasMany(RequestTable);
 // RequestTable.belongsTo(UserTable);
@@ -87,4 +88,5 @@ export {
   ConversationTable,
   ConversationParticipantsTable,
   MessagesTable,
+  MessageReadsTable,
 };

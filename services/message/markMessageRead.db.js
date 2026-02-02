@@ -2,8 +2,8 @@ import { Op } from "sequelize";
 import {
   ConversationParticipantsTable,
   MessagesTable,
+  MessageReadsTable,
 } from "../../database_models/index.js";
-import { MessageReadsTable } from "../../database_models/messageReadsTable.js";
 
 const getMessagesWithIds = (messageIds) => {
   return MessagesTable.findAll({
