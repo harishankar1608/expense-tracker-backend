@@ -88,9 +88,30 @@ const getFriendsData = (friendsId) => {
   });
 };
 
+const getAllMessagesForConversation = (conversationIds, currentUser) => {
+  return MessagesTable.findAll({
+    where: {
+      conversation_id: { [Op.in]: conversationIds },
+      sender_id: { [Op.not]: currentUser },
+      "$message_read.id$": null,
+    },
+    attributes: ["conversation_id", "id", "content"],
+    include: [
+      {
+        model: MessageReadsTable,
+        as: "message_read",
+        where: { user_id: currentUser },
+        attributes: [],
+        required: false,
+      },
+    ],
+  });
+};
+
 export default {
   getAllDmParticipants,
   getAllMessageCountForConversation,
   getReadMessageCountForConversation,
   getFriendsData,
+  getAllMessagesForConversation,
 };

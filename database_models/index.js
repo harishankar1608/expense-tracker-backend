@@ -81,6 +81,11 @@ ConversationTable.belongsTo(MessagesTable, {
   foreignKey: "last_message_id",
 });
 
+MessagesTable.hasMany(MessageReadsTable, {
+  as: "message_read",
+  foreignKey: "message_id",
+});
+
 export {
   UserTable,
   RequestTable,

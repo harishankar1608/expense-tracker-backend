@@ -6,17 +6,10 @@ import {
   MessageReadsTable,
 } from "../../database_models/index.js";
 
-const validateParticipant = (conversationId, currentUser) => {
-  return ConversationTable.findByPk(conversationId, {
-    attributes: ["id"],
-    include: [
-      {
-        model: ConversationParticipantsTable,
-        as: "conversation_participant",
-        attributes: ["user_id"],
-        where: { user_id: currentUser },
-      },
-    ],
+const getAllParticipants = (conversationId) => {
+  return ConversationParticipantsTable.findAll({
+    where: { conversation_id: conversationId },
+    attributes: ["user_id"],
   });
 };
 
@@ -47,4 +40,4 @@ const getMessageReads = (messageIds, currentUser) => {
   });
 };
 
-export default { validateParticipant, getAllMessages, getMessageReads };
+export default { getAllParticipants, getAllMessages, getMessageReads };

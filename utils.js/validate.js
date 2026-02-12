@@ -36,7 +36,12 @@ export const decodeAndValidateUser = async (sessionId) => {
 
   const user = await UserTable.findByPk(userId);
 
-  if (!user) return { status: false, userId: null };
+  if (!user) return { status: false, userId: null, emaiL: null, name: null };
 
-  return { status: true, userId: Number(user.dataValues.user_id) };
+  return {
+    status: true,
+    userId: Number(user.dataValues.user_id),
+    email: user.dataValues.email,
+    name: user.dataValues.name,
+  };
 };

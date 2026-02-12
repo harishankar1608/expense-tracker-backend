@@ -4,6 +4,10 @@ const addUser = (userId, socketObject) => {
   users.set(userId, socketObject);
 };
 
+const removeUser = (userId) => {
+  users.delete(userId);
+};
+
 const hasUser = (userId) => users.has(userId);
 
 const sendMessageToUser = (userId, messagePayload) => {

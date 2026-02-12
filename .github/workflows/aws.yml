@@ -31,15 +31,14 @@ on:
     branches: ["dev"]
 
 env:
+  AWS_ECS_ROLE: ${{secrets.AWS_ECS_ROLE}}
+  ECS_TASK_DEFINITION: ${{secrets.ECS_TASK_DEFINITION}} # set this to the path to your Amazon ECS task definition
   AWS_REGION: ap-south-1 # set this to your preferred AWS region, e.g. us-west-1
-  ECR_REPOSITORY: expense-tracker-node # set this to your Amazon ECR repository name
-  ECS_SERVICE: expense_tracker_node_td-service-4jrrgly0 # set this to your Amazon ECS service name
+  ECR_REPOSITORY: expense-tracker-backend # set this to your Amazon ECR repository name
+  ECS_SERVICE: expense_tracker_node-sd # set this to your Amazon ECS service name
   ECS_CLUSTER: expense_tracker # set this to your Amazon ECS cluster name
-  ECS_TASK_DEFINITION:
-    arn:aws:ecs:ap-south-1:532174505292:task-definition/expense_tracker_node_td # set this to the path to your Amazon ECS task definition
-    # file, e.g. .aws/task-definition.json
   CONTAINER_NAME:
-    expense_tracker_node_cont # set this to the name of the container in the
+    expense_tracker_backend_cont # set this to the name of the container in the
     # containerDefinitions section of your task definition
 
 permissions:
@@ -60,7 +59,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          role-to-assume: arn:aws:iam::532174505292:role/github-expense-tracker-backend-dev
+          role-to-assume: ${{env.AWS_ECS_ROLE}}
           aws-region: ${{ env.AWS_REGION }}
       - name: Additional steps
         run: |

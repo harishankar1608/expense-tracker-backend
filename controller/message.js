@@ -3,7 +3,8 @@ import {
   MESSAGE_TYPE,
   PARTICIPANT_ROLE,
 } from "../enum/messages.js";
-import websocketConnections from "./webSocket/users.js";
+
+import { REDIS_CACHE_KEYS } from "../enum/redis.js";
 
 import createConversationServices from "../services/message/createConversation.db.js";
 import getAllConversationServices from "../services/message/getAllConversations.db.js";
@@ -12,37 +13,51 @@ import sendMessageServices from "../services/message/sendMessage.db.js";
 import markMessageReadServices from "../services/message/markMessageRead.db.js";
 import getConversationUnreadCountServices from "../services/message/getConversationUnreadCount.db.js";
 
+import MessageServices from "../services/message/index.js";
+
+import redis from "../redis.js";
+
 import dateServices from "../services/date.js";
+import { sendEventsToKafka } from "../kafka.js";
 
 export const createConversation = async (req, res) => {
+  // Database services
+  const {
+    findConversationParticipants,
+    getAllDmsWithConversationIds,
+    createConversation,
+    createConversationParticipants,
+    createDefaultMessage,
+    updateConversationWithDefaultMessage,
+  } = createConversationServices;
+
+  //redis services
+  const { add } = redis;
+
   try {
     const { friendId } = req.body;
-    const { currentUser } = req.metadata;
+    const { currentUser, name, email } = req.metadata;
 
     if (!friendId || !currentUser)
       return res.status(400).send({ message: "Missing required fields" });
 
-    const participants =
-      await createConversationServices.findConversationParticipants(
-        currentUser,
-        friendId
-      );
+    const participants = await findConversationParticipants(
+      currentUser,
+      friendId
+    );
 
     const conversationsId = participants.map(
       (c) => c.dataValues.conversation_id
     );
 
     if (conversationsId.length > 0) {
-      const dms = await createConversationServices.getAllDmsWithConversationIds(
-        conversationsId
-      );
+      const dms = await getAllDmsWithConversationIds(conversationsId);
 
       if (dms.length > 0)
         return res.status(400).send({ message: "Conversation already exist" });
     }
 
-    const conversationData =
-      await createConversationServices.createConversation(currentUser);
+    const conversationData = await createConversation(currentUser);
 
     const participantsPayload = [
       {
@@ -57,9 +72,7 @@ export const createConversation = async (req, res) => {
       },
     ];
 
-    await createConversationServices.createConversationParticipants(
-      participantsPayload
-    );
+    await createConversationParticipants(participantsPayload);
 
     const defaultMessagePayload = {
       content: DEFAULT_MESSAGE.GREET,
@@ -70,11 +83,9 @@ export const createConversation = async (req, res) => {
     };
 
     //create a default message
-    const lastMessage = await createConversationServices.createDefaultMessage(
-      defaultMessagePayload
-    );
+    const lastMessage = await createDefaultMessage(defaultMessagePayload);
 
-    await createConversationServices.updateConversationWithDefaultMessage(
+    await updateConversationWithDefaultMessage(
       conversationData.dataValues.id,
       lastMessage.dataValues.id
     );
@@ -90,19 +101,17 @@ export const createConversation = async (req, res) => {
       },
     };
 
-    if (websocketConnections.hasUser(friendId)) {
-      //send message in websocket if the friend is online
-      const userData = await createConversationServices.getSenderData(
-        currentUser
-      );
+    // if (websocketConnections.hasUser(friendId)) {
+    //send message in websocket if the friend is online
 
-      websocketConnections.sendMessageToUser(friendId, {
-        requestType: "new_conversation",
-        data: {
+    sendEventsToKafka("websocket_messages", {
+      requestType: "new_conversation",
+      data: {
+        message: {
           friend: {
-            userId: userData.dataValues.user_id,
-            email: userData.dataValues.email,
-            name: userData.dataValues.name,
+            userId: currentUser,
+            email,
+            name,
           },
           conversation: {
             conversationId: conversation.conversationId,
@@ -110,9 +119,16 @@ export const createConversation = async (req, res) => {
             participantId: currentUser,
             lastMessage: conversation.lastMessage,
           },
+          messageId: lastMessage.dataValues.id,
         },
-      });
-    }
+        to: friendId,
+      },
+    });
+
+    await add(
+      `${REDIS_CACHE_KEYS.CONVERSATION_PARTICIPANTS}:${conversation.conversationId}`,
+      [currentUser, friendId]
+    );
 
     return res.status(201).send({ data: { conversation } });
   } catch (error) {
@@ -161,32 +177,29 @@ export const getAllConversations = async (req, res) => {
       });
     });
 
-    const allMessages =
-      await getAllConversationServices.getAllMessageCountForConversation(
+    // const allMessages =
+    //   await getAllConversationServices.getAllMessageCountForConversation(
+    //     conversationIds,
+    //     currentUser
+    //   );
+
+    // console.log(allMessages, "Count of all messages");
+    const unReadMessages =
+      await getAllConversationServices.getAllMessagesForConversation(
         conversationIds,
         currentUser
       );
 
-    const allMessagesCount = allMessages.reduce((obj, message) => {
-      obj[message.dataValues.conversation_id] = message.dataValues.count;
-      return obj;
-    }, {});
+    const unReads = {};
 
-    const readMessages =
-      await getAllConversationServices.getReadMessageCountForConversation(
-        conversationIds,
-        currentUser
-      );
-
-    const readMessageCount = readMessages.reduce((obj, message) => {
-      obj[message.dataValues.conversation_id] = message.dataValues.count;
-      return obj;
-    }, {});
+    unReadMessages.forEach((message) => {
+      if (!unReads?.[message.dataValues.conversation_id])
+        unReads[message.dataValues.conversation_id] = [];
+      unReads?.[message.dataValues.conversation_id].push(message.id);
+    });
 
     conversations.forEach((conversation) => {
-      conversation.unReads =
-        (allMessagesCount?.[conversation.conversationId] || 0) -
-        (readMessageCount?.[conversation.conversationId] || 0);
+      conversation.unReads = 0;
     });
 
     const friends = await getAllConversationServices.getFriendsData(
@@ -204,7 +217,9 @@ export const getAllConversations = async (req, res) => {
       {}
     );
 
-    return res.status(200).send({ conversations, friends: friendsData });
+    return res
+      .status(200)
+      .send({ conversations, friends: friendsData, unReads });
   } catch (error) {
     console.log(error, "Error,");
     return res
@@ -221,11 +236,13 @@ export const getAllMessagesInConversation = async (req, res) => {
     if (!conversationId || !currentUser)
       return res.status(400).send({ message: "Missing required fields" });
 
-    const isParticipant =
-      await getAllMessagesInConversationServices.validateParticipant(
-        conversationId,
-        currentUser
-      );
+    const participants = await MessageServices.getAllParticipants(
+      conversationId
+    );
+
+    const isParticipant = participants.find(
+      (participant) => participant == currentUser
+    );
 
     if (!isParticipant)
       return res.status(400).send({ message: "Conversation does not exist" });
@@ -285,21 +302,21 @@ export const sendMessage = async (req, res) => {
     const messageDate = dateServices.getCurrentDate();
 
     //get conversation along participant (only sender)
-    const conversation =
-      await sendMessageServices.getConversationWithParticipant(
-        conversationId,
-        currentUser
-      );
+    const participants = await MessageServices.getAllParticipants(
+      conversationId
+    );
 
-    if (!conversation)
+    const isParticipant = participants.find(
+      (participant) => participant == currentUser
+    );
+
+    if (!isParticipant)
       return res.status(400).send({ message: "Conversation not found" });
 
     //get all other participants in conversation other than the sender
-    const participants =
-      await sendMessageServices.findParticipantsInConversation(
-        conversationId,
-        currentUser
-      );
+    const otherParticipants = participants.filter(
+      (participant) => participant != currentUser
+    );
 
     //create message in messages table
     const lastMessage = await sendMessageServices.createMessage({
@@ -318,24 +335,24 @@ export const sendMessage = async (req, res) => {
       lastMessage.dataValues.id
     );
 
-    //push the message to all the active users who has socket connection open
-    participants.forEach((participant) => {
-      if (websocketConnections.hasUser(participant.dataValues.user_id)) {
-        websocketConnections.sendMessageToUser(participant.dataValues.user_id, {
-          requestType: "deliver_message",
-          data: {
-            id: lastMessage.dataValues.id,
-            conversationId,
-            content: lastMessage.dataValues.content,
-            type: lastMessage.dataValues.type,
-            edited: lastMessage.dataValues.edited,
-            unRead: true,
-            isDeleted: lastMessage.dataValues.is_deleted,
-            senderId: lastMessage.dataValues.send_id,
-            sentAt: lastMessage.dataValues.sent_at,
-          },
-        });
-      }
+    const messageData = {
+      id: lastMessage.dataValues.id,
+      conversationId,
+      content: lastMessage.dataValues.content,
+      type: lastMessage.dataValues.type,
+      edited: lastMessage.dataValues.edited,
+      unRead: true,
+      isDeleted: lastMessage.dataValues.is_deleted,
+      senderId: lastMessage.dataValues.sender_id,
+      sentAt: lastMessage.dataValues.sent_at,
+    };
+
+    await sendEventsToKafka("websocket_messages", {
+      requestType: "deliver_message",
+      data: {
+        message: messageData,
+        participants: otherParticipants,
+      },
     });
 
     return res.status(200).send({

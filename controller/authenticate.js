@@ -27,13 +27,17 @@ export async function verifyUserMiddleWare(req, res, next) {
   try {
     const { session_id: sessionId } = req?.cookies || {};
 
-    const { status, userId } = await decodeAndValidateUser(sessionId);
+    const { status, userId, name, email } = await decodeAndValidateUser(
+      sessionId
+    );
 
     if (!status) return res.status(401).send({ message: "Not authorised" });
 
     if (!req?.metadata) req.metadata = {};
 
     req.metadata.currentUser = userId;
+    req.metadata.name = name;
+    req.metadata.email = email;
 
     next();
   } catch (error) {
