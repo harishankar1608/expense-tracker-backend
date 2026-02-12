@@ -1,21 +1,9 @@
-import { DataTypes } from 'sequelize';
-import { sequelize } from '../postgres.js';
+import { DataTypes } from "sequelize";
+import { sequelize } from "../postgres.js";
 
 export const ExpenseTable = sequelize.define(
-  'expense_table',
+  "expenses",
   {
-    //     CREATE TABLE expense_table(
-    //   lender BIGINT REFERENCES user_table(user_id) NULL,
-    //   borrower BIGINT REFERENCES user_table(user_id) NOT NULL,
-    //   amount BIGINT NOT NULL,
-    //   description VARCHAR(100),
-    //   category VARCHAR(50),
-    //   group_id VARCHAR(50),
-    //   expense_date DATE NOT NULL,
-    //   added_by BIGINT REFERENCES user_table(user_id) NOT NULL,
-    //   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    //   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-    // );
     expense_id: {
       type: DataTypes.BIGINT,
       autoIncrement: true,
@@ -25,16 +13,16 @@ export const ExpenseTable = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: true,
       references: {
-        model: 'user_table',
-        key: 'user_id',
+        model: "users",
+        key: "user_id",
       },
     },
     borrower: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'user_table',
-        key: 'user_id',
+        model: "users",
+        key: "user_id",
       },
     },
     amount: {
@@ -61,8 +49,8 @@ export const ExpenseTable = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'user_table',
-        key: 'user_id',
+        model: "users",
+        key: "user_id",
       },
     },
     created_at: {
@@ -77,8 +65,21 @@ export const ExpenseTable = sequelize.define(
     },
   },
   {
-    tableName: 'expense_table',
+    tableName: "expenses",
     timestamps: false,
-    schema: 'public',
+    schema: "public",
   }
 );
+
+//     CREATE TABLE expense_table(
+//   lender BIGINT REFERENCES user_table(user_id) NULL,
+//   borrower BIGINT REFERENCES user_table(user_id) NOT NULL,
+//   amount BIGINT NOT NULL,
+//   description VARCHAR(100),
+//   category VARCHAR(50),
+//   group_id VARCHAR(50),
+//   expense_date DATE NOT NULL,
+//   added_by BIGINT REFERENCES user_table(user_id) NOT NULL,
+//   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+//   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+// );

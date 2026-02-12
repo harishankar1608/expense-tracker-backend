@@ -1,0 +1,117 @@
+import { Op, Sequelize } from "sequelize";
+import {
+  ConversationParticipantsTable,
+  ConversationTable,
+  MessagesTable,
+  UserTable,
+  MessageReadsTable,
+} from "../../database_models/index.js";
+import { CONVERSATION_TYPE } from "../../enum/messages.js";
+
+const getAllDmParticipants = (currentUser) => {
+  return ConversationParticipantsTable.findAll({
+    where: {
+      user_id: currentUser,
+    },
+    include: [
+      {
+        model: ConversationTable,
+        as: "conversation",
+        where: {
+          type: CONVERSATION_TYPE.DM,
+        },
+        include: [
+          {
+            model: ConversationParticipantsTable,
+            as: "conversation_participant",
+            where: {
+              user_id: {
+                [Op.not]: currentUser,
+              },
+            },
+            attributes: ["user_id"],
+          },
+          {
+            model: MessagesTable,
+            as: "last_message",
+            attributes: ["content", "type", "sender_id"],
+            order: [["sent_at", "DESC"]],
+          },
+        ],
+      },
+    ],
+  });
+};
+
+const getAllMessageCountForConversation = (conversationIds, currentUser) => {
+  return MessagesTable.findAll({
+    where: {
+      conversation_id: {
+        [Op.in]: conversationIds,
+      },
+      sender_id: {
+        [Op.not]: currentUser,
+      },
+    },
+    group: "conversation_id",
+    attributes: [
+      "conversation_id",
+      [Sequelize.fn("COUNT", Sequelize.col("conversation_id")), "count"],
+    ],
+  });
+};
+
+const getReadMessageCountForConversation = (conversationIds, currentUser) => {
+  return MessageReadsTable.findAll({
+    where: {
+      conversation_id: {
+        [Op.in]: conversationIds,
+      },
+      user_id: currentUser,
+    },
+    group: "conversation_id",
+    attributes: [
+      "conversation_id",
+      [Sequelize.fn("COUNT", Sequelize.col("conversation_id")), "count"],
+    ],
+  });
+};
+
+const getFriendsData = (friendsId) => {
+  return UserTable.findAll({
+    where: {
+      user_id: {
+        [Op.in]: friendsId,
+      },
+    },
+    attributes: ["email", "user_id", "name"],
+  });
+};
+
+const getAllMessagesForConversation = (conversationIds, currentUser) => {
+  return MessagesTable.findAll({
+    where: {
+      conversation_id: { [Op.in]: conversationIds },
+      sender_id: { [Op.not]: currentUser },
+      "$message_read.id$": null,
+    },
+    attributes: ["conversation_id", "id", "content"],
+    include: [
+      {
+        model: MessageReadsTable,
+        as: "message_read",
+        where: { user_id: currentUser },
+        attributes: [],
+        required: false,
+      },
+    ],
+  });
+};
+
+export default {
+  getAllDmParticipants,
+  getAllMessageCountForConversation,
+  getReadMessageCountForConversation,
+  getFriendsData,
+  getAllMessagesForConversation,
+};

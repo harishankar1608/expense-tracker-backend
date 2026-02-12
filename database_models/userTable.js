@@ -1,9 +1,8 @@
-import { DataTypes } from 'sequelize';
-import { sequelize } from '../postgres.js';
-import { RequestTable } from './requestTable.js';
+import { DataTypes } from "sequelize";
+import { sequelize } from "../postgres.js";
 
 export const UserTable = sequelize.define(
-  'user_table',
+  "users",
   {
     email: {
       type: DataTypes.INTEGER,
@@ -38,8 +37,8 @@ export const UserTable = sequelize.define(
     },
   },
   {
-    tableName: 'user_table',
+    tableName: "users",
     timestamps: false,
-    schema: 'public',
+    schema: "public",
   }
 );
