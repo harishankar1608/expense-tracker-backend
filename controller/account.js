@@ -54,8 +54,8 @@ export async function loginUser(req, res) {
     res.cookie("session_id", token, {
       maxAge: cookieExpiration,
       httpOnly: true,
-      sameSite: "None",
-      secure: true,
+      // sameSite: "None",
+      // secure: true,
     });
 
     return res.status(200).send({
