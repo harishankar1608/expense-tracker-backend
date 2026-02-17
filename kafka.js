@@ -2,7 +2,7 @@ import { Kafka } from "kafkajs";
 
 const kafka = new Kafka({
   clientId: "message-app",
-  brokers: ["localhost:9092"],
+  brokers: [`${process.env.KAFKA_PORT}`],
 });
 
 const producer = kafka.producer();
