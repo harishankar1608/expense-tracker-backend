@@ -164,16 +164,6 @@ export const getFriendsExpense = async (req, res) => {
 
     const expenses = expenseRef.map((expense) => expense.dataValues);
 
-    // if (expenseData.borrower === currentUser && !expenseData.lender)
-    //   expenseType.self.push(expenseData);
-    // else if (expense.borrower === currentUser) {
-    //   expenseType.borrowed.push(expenseData);
-    // } else if (expense.lender === currentUser) {
-    //   expenseType.lended.push(expenseData);
-    // } else {
-    //   console.log('Does not fit into any criteria');
-    // }
-
     const friendsUserData = await UserTable.findAll({
       where: { user_id: { [Op.in]: friends } },
     });
@@ -197,12 +187,12 @@ export const getSelfExpenses = async (req, res) => {
     const year = Number(monthAndYear[0]);
     const startDate = new Date(
       new Date(year, month - 1, 1).toLocaleString("en-US", {
-        timeZone: currentTimezone,
+        // timeZone: currentTimezone,
       })
     );
     const endDate = new Date(
       new Date(year, month, 0).toLocaleString("en-US", {
-        timeZone: currentTimezone,
+        // timeZone: currentTimezone,
       })
     );
     const userRef = await UserTable.findOne({
@@ -218,14 +208,13 @@ export const getSelfExpenses = async (req, res) => {
       where: {
         lender: null,
         borrower: currentUser,
-        expense_date: { [Op.and]: { [Op.gt]: startDate, [Op.lt]: endDate } },
+        expense_date: { [Op.and]: { [Op.gt]: startDate, [Op.lte]: endDate } },
       },
     });
 
     if (expenseRef.length === 0) return res.status(200).send({ expenses: [] });
 
     const expenses = expenseRef.map((expense) => expense.dataValues);
-    console.log(expenses, "EXPENSEs");
 
     return res.status(200).send({ expenses: expenses });
   } catch (error) {

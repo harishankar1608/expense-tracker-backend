@@ -4,6 +4,9 @@ import { router } from "./routes/router.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
+import { connectKafka } from "./kafka.js";
+import redis from "./redis.js";
+
 dotenv.config();
 const app = express();
 
@@ -13,9 +16,16 @@ app.get("/", (req, res) => {
     .send({ message: "Node js application running successfully" });
 });
 
+app.get("/health-check", (req, res) => {
+  return res.status(200).send({ message: "Node js application healthy" });
+});
+
 app.use(cors({ credentials: true, origin: process.env.FRONT_END_URL }));
 app.use(express.json());
 app.use(cookieParser());
+
+connectKafka();
+redis.connect();
 
 app.use(router);
 

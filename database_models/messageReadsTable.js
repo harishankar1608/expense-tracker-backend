@@ -1,36 +1,30 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "../postgres.js";
 
-export const RequestTable = sequelize.define(
-  "requests",
+export const MessageReadsTable = sequelize.define(
+  "message_reads",
   {
-    request_id: {
+    id: {
       type: DataTypes.INTEGER,
-      primaryKey: true,
-      allowNull: false,
       autoIncrement: true,
+      primaryKey: true,
     },
-    user1: {
+    conversation_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: "users",
-        key: "user_id",
-      },
+      references: { model: "conversations", key: "id" },
     },
-    user2: {
+    message_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: "users",
-        key: "user_id",
-      },
+      references: { model: "messages", key: "id" },
     },
-    status: {
-      //requested, accepted, cancelled, rejected, blocked
-      type: DataTypes.STRING,
+    user_id: {
+      type: DataTypes.INTEGER,
       allowNull: false,
+      references: { model: "users", key: "user_id" },
     },
+    read: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
     created_at: {
       type: DataTypes.DATE,
       defaultValue: Date.now(),
@@ -43,7 +37,7 @@ export const RequestTable = sequelize.define(
     },
   },
   {
-    tableName: "requests",
+    tableName: "message_reads",
     timestamps: false,
     schema: "public",
   }
