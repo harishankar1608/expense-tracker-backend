@@ -2,6 +2,14 @@ About the Project
 
 This repository acts as a primary backend service for expense tracker application.
 
+Built With
+
+- [Node.js][nodejs-url]
+- [PostgreSQL][postgresql-url]
+- [Sequelize][sequelize-url]
+- [Apache Kafka][apache-kafka-url]
+- [Redis][redis-url]
+
 Prerequisites:
 
 - PostgreSQL
@@ -92,7 +100,20 @@ Get Started
     npm run dev
   ```
 
+Next Steps:
+
+- Launch the [Expense Tracker Messaging And Caching Microservices][expense-tracker-microservices]
+- Launch the [Expense Tracker Frontend Application][expense-tracker-frontend]
+
 NOTE:
 
 - In this repository Redis is only used to read data, writing data to redis is handled in expense-tracker-microservices/expense-tracker-caching-service repository
 - In this repository Kafka is only used to produce events, event consumers are available in both expense-tracker-microservices (expense-tracker-caching-service and expense-tracker-messaging-service)
+
+[expense-tracker-microservices]: https://github.com/harishankar1608/expense-tracker-microservices
+[expense-tracker-frontend]: https://github.com/harishankar1608/expense-tracker-frontend
+[nodejs-url]: https://nodejs.org/en
+[postgresql-url]: https://www.postgresql.org/
+[apache-kafka-url]: https://kafka.apache.org/
+[redis-url]: https://redis.io/
+[sequelize-url]: https://sequelize.org/
