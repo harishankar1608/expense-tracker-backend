@@ -22,9 +22,16 @@ const get = async (key) => {
 const add = async (key, value) => {
   return client.set(key, JSON.stringify(value));
 };
+
+const sendEventsToRedisPubsub = async (topic, messages) => {
+  console.log(topic, messages, "topic and mess");
+  const result = await client.publish(topic, JSON.stringify(messages));
+  console.log(result, "Result");
+};
 // docker run --name expense_tracker_redis -p 6379:6379 -d redis:latest --requirepass "9535"
 export default {
   connect,
   get,
   add,
+  sendEventsToRedisPubsub,
 };

@@ -18,7 +18,6 @@ import MessageServices from "../services/message/index.js";
 import redis from "../redis.js";
 
 import dateServices from "../services/date.js";
-import { sendEventsToKafka } from "../kafka.js";
 
 export const createConversation = async (req, res) => {
   // Database services
@@ -32,7 +31,7 @@ export const createConversation = async (req, res) => {
   } = createConversationServices;
 
   //redis services
-  const { add } = redis;
+  const { add, sendEventsToRedisPubsub } = redis;
 
   try {
     const { friendId } = req.body;
@@ -104,7 +103,7 @@ export const createConversation = async (req, res) => {
     // if (websocketConnections.hasUser(friendId)) {
     //send message in websocket if the friend is online
 
-    sendEventsToKafka("websocket_messages", {
+    sendEventsToRedisPubsub("websocket_messages", {
       requestType: "new_conversation",
       data: {
         message: {
@@ -300,6 +299,7 @@ export const sendMessage = async (req, res) => {
       return res.status(400).send({ message: "Missing required fields" });
 
     const messageDate = dateServices.getCurrentDate();
+    const { sendEventsToRedisPubsub } = redis;
 
     //get conversation along participant (only sender)
     const participants = await MessageServices.getAllParticipants(
@@ -347,7 +347,7 @@ export const sendMessage = async (req, res) => {
       sentAt: lastMessage.dataValues.sent_at,
     };
 
-    await sendEventsToKafka("websocket_messages", {
+    await sendEventsToRedisPubsub("websocket_messages", {
       requestType: "deliver_message",
       data: {
         message: messageData,
